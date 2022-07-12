@@ -11,4 +11,4 @@ ConditionFirstBoot=yes
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/sbin/first-boot
+ExecStart=first-boot
