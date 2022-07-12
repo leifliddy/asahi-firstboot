@@ -12,3 +12,6 @@ ConditionFirstBoot=yes
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/sbin/first-boot
+
+[Install]
+WantedBy=sysinit.target
