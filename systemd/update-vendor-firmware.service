@@ -9,4 +9,4 @@ ConditionDirectoryNotEmpty=/boot/efi/vendorfw
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/sbin/update-vendor-firmware
+ExecStart=update-vendor-firmware
