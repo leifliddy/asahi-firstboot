@@ -11,5 +11,3 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/local/sbin/update-vendor-firmware
 
-[Install]
-WantedBy=sysinit.target
