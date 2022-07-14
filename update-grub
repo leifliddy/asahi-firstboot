@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Shouldn't really to run this unless the root partition uuid changes
 # As Fedora uses the Boot Loader Specification (BLS)
@@ -9,7 +9,7 @@ BOOT_PART='/boot'
 GRUB_DIR="$BOOT_PART/grub2"
 GRUB_CONFIG="$GRUB_DIR/grub.cfg"
 UBOOT_BOOTLOADER='/boot/efi/EFI/BOOT/BOOTAA64.EFI'
-GRUB_MODULES='ext2 part_gpt search btrfs'
+GRUB_MODULES='ext2 part_gpt search btrfs f2fs'
 
 uuid=$(grub2-probe $BOOT_PART -t fs_uuid)
 part=$(grub2-probe $BOOT_PART -t drive | sed -e 's/(.*,/hd0,/' | tr -d ')')
@@ -19,19 +19,25 @@ if [ -z "$uuid" ]; then
     exit 1
 fi
 
+if [[ $(btrfs fi show $uuid 2> /dev/null) ]]; then
+    PREFIX_GRUB_DIR=$GRUB_DIR
+else
+    PREFIX_GRUB_DIR='/grub2'
+fi
+
 echo "UUID: $uuid"
 echo "Partition: $part"
 
 cat > /tmp/grub-core.cfg <<EOF
 search.fs_uuid $uuid root $part
-set prefix=(\$root)$GRUB_DIR
+set prefix=(\$root)$PREFIX_GRUB_DIR
 EOF
 
 echo 'Generating GRUB image...'
 grub2-mkimage \
     --directory '/usr/lib/grub/arm64-efi' \
     -c /tmp/grub-core.cfg \
-    --prefix $GRUB_DIR \
+    --prefix $PREFIX_GRUB_DIR \
     --output $GRUB_DIR/arm64-efi/core.efi \
     --format arm64-efi \
     --compression auto \
