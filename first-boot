@@ -3,45 +3,66 @@
 root_dev_path=$(findmnt -nv -o SOURCE /)
 efi_dev_path=$(findmnt -n -o SOURCE /boot/efi)
 
-# 1. randomize the UUID of the efi partition
-if [ $(echo $root_dev_path | grep '^/dev/nvme') ] && [ -n "$root_dev_path" ] && [ -n "$efi_dev_path" ]; then
-    if [ "$(blkid "$efi_dev" | tr -d '"' | grep 'TYPE=vfat')" ]; then
-	# can't change the btrfs uuid while the device is mounted
-	# commenting out for now...
-    #echo "Randomizing root filesystem UUID..."
-    #btrfs_uuid_old="$(blkid -c /dev/null "$root_dev" -o export | grep '^UUID=')"
-    #btrfstune -m "$root_dev"
-    #btrfs_uuid_new="$(blkid -c /dev/null "$root_dev" -o export | grep '^UUID=')"
-    #echo "BTRFS partition: $btrfs_uuid_new"
+root_fstype=$(blkid -s TYPE -o value $root_dev_path)
+efi_fstype=$(blkid -s TYPE -o value $efi_dev_path)
 
-	echo -e "\nSetting $efi_dev label to EFI-FEDORA"
-	dosfslabel $efi_dev 'EFI-FEDORA'
+# 1. randomize the UUID of the efi and root partitions
+if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
+    if [ $efi_fstype == 'vfat' ]; then
+	    echo -e "\nSetting $efi_dev label to EFI-FEDORA"
+	    dosfslabel $efi_dev 'EFI-FEDORA'
 
-    echo -e '\nRandomizing EFI system partition UUID...'
-    # Ugly... why isn't there a command to do this?
-    efi_uuid_old=$(blkid -c /dev/null "$efi_dev" -o export | grep '^UUID=')
-    ssize="$(blockdev --getss "$efi_dev")"
-    dd bs=1 seek=67 count=4 conv=notrunc if=/dev/urandom of="$efi_dev"
-    dd bs=1 skip=67 seek=$((67+6*$ssize)) count=4 conv=notrunc if="$efi_dev" of="$efi_dev"
-    efi_uuid_new=$(blkid -c /dev/null "$efi_dev" -o export | grep '^UUID=')
-    echo -e "EFI partition: $efi_uuid_new\n"
+        echo -e '\nRandomizing EFI system partition UUID...'
+        # Ugly... why isn't there a command to do this?
+        efi_uuid_old=$(blkid -s UUID -o value $efi_dev_path)
+        ssize=$(blockdev --getss $efi_dev_path)
+        dd bs=1 seek=67 count=4 conv=notrunc if=/dev/urandom of=$efi_dev_path
+        dd bs=1 skip=67 seek=$((67+6*$ssize)) count=4 conv=notrunc if=$efi_dev_path of=$efi_dev_path
+        efi_uuid_new=$(blkid -s UUID -o value $efi_dev_path)
+        echo -e "EFI partition: $efi_uuid_new\n"
 
-    if [ -n "$efi_uuid_new" ]; then
-        echo "Regenerating /etc/fstab..."
-        sed -i "s/$efi_uuid_old/$efi_uuid_new/" /etc/fstab
+        if [ -n "$efi_uuid_new" ]; then
+            echo "Regenerating /etc/fstab..."
+            sed -i "s/$efi_uuid_old/$efi_uuid_new/" /etc/fstab
+        fi
+    fi
+    # only support randomizing the UUID of ext4 root partitions
+    # btrfs is not supported as you can't change the UUID of a btrfs partiton while it's mounted
+    if [ $root_fstype == 'ext4' ]; then
+        echo "Randomizing root filesystem UUID..."
+        root_uuid_old=$(blkid -s UUID -o value $root_dev_path)
+        tune2fs -U random $root_dev_path
+        root_uuid_new=$(blkid -s UUID -o value $root_dev_path)
+        echo "Root filesystem: $root_uuid_new"
+
+        if [ -n "$root_uuid_new" ]; then
+            echo "Regenerating /etc/fstab..."
+            sed -i "s/$root_uuid_old/$root_uuid_new/" /etc/fstab
+        fi
     fi
 
-    # can't change the btrfs uuid while the device is mounted
-    # commenting out for now...
-    #if [ -n "$btrfs_uuid_new" ]; then
-    #    echo "Regenerating /etc/fstab..."
-    #    sed -i "s/$btrfs_uuid_old/$btrfs_uuid_new/" /etc/fstab
-    #    echo
-    #fi
+# 2. expand the root partition and filesystem
+# this is quite a simple method...there's room for improvement
+
+    part_id=$(echo $root_device_path | egrep -o 'p[0-9]+$')
+    part_num=$(echo $part_id | tr -d 'p')
+    root_disk=$(echo $root_device_path | sed "s/$part_id$//")
+
+    echo -e "\ngrowpart $root_disk $part_num"
+    growpart $root_disk $part_num
+    
+    if [ $root_fstype == 'btrfs' ]; then
+        echo -e "\nbtrfs filesystem resize max /"
+        btrfs filesystem resize max /
+    fi
+    
+    if [ $root_fstype == 'ext4' ]; then
+        echo -e "\nresize2fs $root_device_path"
+        resize2fs $root_device_path
     fi
 fi
 
-# 2. generate a new machine-id
+# 3. generate a new machine-id
 if [ ! -e /etc/machine-id ]; then
     systemd-machine-id-setup
     echo "KERNEL_INSTALL_MACHINE_ID=$(cat /etc/machine-id)" > /etc/machine-info
@@ -57,20 +78,6 @@ if [ ! -e /etc/machine-id ]; then
     do
         kernel-install add $kernel_version /lib/modules/$kernel_version/vmlinuz
     done
-fi
-
-# 3. expand the root partition and filesystem
-# this is quite a simple method...there's room for improvement
-
-if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
-	part_id=$(echo $root_device_path | egrep -o 'p[0-9]+$')
-	part_num=$(echo $part_id | tr -d 'p')
-	root_disk=$(echo $root_device_path | sed "s/$part_id$//")
-
-    echo -e "\ngrowpart $root_disk $part_num"
-    growpart $root_disk $part_num
-    echo -e "\nbtrfs filesystem resize max /"
-    btrfs filesystem resize max /
 fi
 
 # 4. update-grub
