@@ -10,7 +10,7 @@ efi_fstype=$(blkid -s TYPE -o value $efi_dev_path)
 if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
     if [ $efi_fstype == 'vfat' ]; then
 	    echo -e "\nSetting $efi_dev label to EFI-FEDORA"
-	    dosfslabel $efi_dev 'EFI-FEDORA'
+	    dosfslabel $efi_dev_path 'EFI-FEDORA'
 
         echo -e '\nRandomizing EFI system partition UUID...'
         # Ugly... why isn't there a command to do this?
