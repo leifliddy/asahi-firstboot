@@ -14,11 +14,18 @@ GRUB_MODULES='ext2 part_gpt search btrfs'
 boot_uuid=$(grub2-probe $BOOT_PART -t fs_uuid)
 root_uuid=$(grub2-probe / -t fs_uuid)
 part=$(grub2-probe $BOOT_PART -t drive | sed -e 's/(.*,/hd0,/' | tr -d ')')
+[[ $(echo $part | grep '/dev/loop') ]] && unset part
 
 if [ -z $boot_uuid ]; then
     echo "Error: Unable to determine root filesystem UUID"
     exit 1
 fi
+
+# copy grub modules /boot/grub2/arm64-efi
+[ ! -d $GRUB_DIR/arm64-efi ] && cp -r /usr/lib/grub/arm64-efi $GRUB_DIR/arm64-efi/
+
+# this creates a uefi grub boot entry that doesn't work 
+[ -f '/etc/grub.d/30_uefi-firmware' ] && rm -f /etc/grub.d/30_uefi-firmware
 
 boot_dev_path=$(blkid -U $boot_uuid)
 boot_fstype=$(blkid -s TYPE -o value $boot_dev_path)
@@ -34,7 +41,7 @@ fi
 
 echo "boot UUID: $boot_uuid"
 echo "root UUID: $root_uuid"
-echo "Partition: $part"
+[[ -n $part ]] && echo "Partition: $part"
 echo -e "prefix_grub_dir: $PREFIX_GRUB_DIR\n"
 
 cat > /tmp/grub-core.cfg <<EOF
