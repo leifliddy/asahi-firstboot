@@ -57,8 +57,8 @@ if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
     fi
     
     if [ $root_fstype == 'ext4' ]; then
-        echo -e "\nresize2fs $root_device_path"
-        resize2fs $root_device_path
+        echo -e "\nresize2fs $root_dev_path"
+        resize2fs $root_dev_path
     fi
 fi
 
