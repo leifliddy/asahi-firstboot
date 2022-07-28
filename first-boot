@@ -74,6 +74,7 @@ if [ ! -e /etc/machine-id ]; then
 
     installed_kernels=$(rpm -q kernel | sed 's/kernel-//')
 
+    # kernel-install will call dracut, so no need to run that separately
     for kernel_version in $installed_kernels
     do
         kernel-install add $kernel_version /lib/modules/$kernel_version/vmlinuz
@@ -83,11 +84,8 @@ fi
 # 4. update-grub
 update-grub
 
-# 5. run dracut to ensure the initramfs image is up-to-date
-dracut -f
-
-# 6. extract firmware for bluetooth to work
-# will find a better way to automate this in the near future
+# 5. extract firmware for bluetooth to work
+# will find a better way to automate this in a future release
 
 if [ -e /boot/efi/asahi/all_firmware.tar.gz ]; then
     printf '==> Upgrading vendor firmware package...\n'
