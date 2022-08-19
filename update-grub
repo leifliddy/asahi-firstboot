@@ -25,7 +25,7 @@ fi
 [ ! -d $GRUB_DIR/arm64-efi ] && cp -r /usr/lib/grub/arm64-efi $GRUB_DIR/arm64-efi/
 
 # this creates a uefi grub boot entry that doesn't work 
-[ -f '/etc/grub.d/30_uefi-firmware' ] && rm -f /etc/grub.d/30_uefi-firmware
+[ -f '/etc/grub.d/30_uefi-firmware' ] && chmod -x /etc/grub.d/30_uefi-firmware
 
 boot_dev_path=$(blkid -U $boot_uuid)
 boot_fstype=$(blkid -s TYPE -o value $boot_dev_path)
