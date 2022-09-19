@@ -50,12 +50,12 @@ if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
 
     echo -e "\ngrowpart $root_disk $part_num"
     growpart $root_disk $part_num
-    
+
     if [ $root_fstype == 'btrfs' ]; then
         echo -e "\nbtrfs filesystem resize max /"
         btrfs filesystem resize max /
     fi
-    
+
     if [ $root_fstype == 'ext4' ]; then
         echo -e "\nresize2fs $root_dev_path"
         resize2fs $root_dev_path
@@ -84,14 +84,21 @@ fi
 # 4. update-grub
 update-grub
 
-# 5. extract firmware for bluetooth to work
-# will find a better way to automate this in a future release
+# 5. extract firmware
+# this should be identical to the %post script in asahi-fwextract
 
-if [ -e /boot/efi/asahi/all_firmware.tar.gz ]; then
-    printf '==> Upgrading vendor firmware package...\n'
-    python3 -m asahi_firmware.update /boot/efi/asahi /boot/efi/vendorfw/firmware.tar.new /boot/efi/vendorfw/manifest.txt.new
-    mv -f /boot/efi/vendorfw/manifest.txt{.new,}
-    mv -f /boot/efi/vendorfw/firmware.tar{.new,}
-    printf '    Firmware upgraded\n'
-    update-vendor-firmware
+source /usr/share/asahi-scripts/functions.sh
+esp="/run/.system-efi"
+mount_sys_esp "$esp"
+
+if [ ! -e "$esp/asahi/all_firmware.tar.gz" ]; then
+  printf '==> No /asahi/all_firmware.tar.gz in the ESP, skipping firmware extraction'
+  return 0
 fi
+
+printf '==> Upgrading vendor firmware package...\n'
+python3 -m asahi_firmware.update "$esp/asahi" "$esp/vendorfw/firmware.tar.new" "$esp/vendorfw/manifest.txt.new"
+mv -f "$esp/vendorfw/manifest.txt"{.new,}
+mv -f "$esp/vendorfw/firmware.tar"{.new,}
+printf '    Firmware upgraded\n'
+update-vendor-firmware
