@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/sh
 
 # shouldn't really need to run this unless the root partition uuid changes
 # as Fedora uses the Boot Loader Specification (BLS)
