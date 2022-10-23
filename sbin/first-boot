@@ -6,7 +6,27 @@ efi_dev_path=$(findmnt -n -o SOURCE /boot/efi)
 root_fstype=$(blkid -s TYPE -o value $root_dev_path)
 efi_fstype=$(blkid -s TYPE -o value $efi_dev_path)
 
-# 1. randomize the UUID of the efi and root partitions
+
+# 1. extract firmware
+# this should be identical to the %post script in asahi-fwextract
+
+source /usr/share/asahi-scripts/functions.sh
+esp="/run/.system-efi"
+mount_sys_esp "$esp"
+
+if [ ! -e "$esp/asahi/all_firmware.tar.gz" ]; then
+  printf '==> No /asahi/all_firmware.tar.gz in the ESP, skipping firmware extraction'
+  return 0
+fi
+
+printf '==> Upgrading vendor firmware package...\n'
+python3 -m asahi_firmware.update "$esp/asahi" "$esp/vendorfw/firmware.tar.new" "$esp/vendorfw/manifest.txt.new"
+mv -f "$esp/vendorfw/manifest.txt"{.new,}
+mv -f "$esp/vendorfw/firmware.tar"{.new,}
+printf '    Firmware upgraded\n'
+update-vendor-firmware
+
+# 2. randomize the UUID of the efi and root partitions
 if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
     if [ $efi_fstype == 'vfat' ]; then
 	    echo -e "\nSetting $efi_dev label to EFI-FEDORA"
@@ -41,7 +61,7 @@ if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
         fi
     fi
 
-# 2. expand the root partition and filesystem
+# 3. expand the root partition and filesystem
 # this is quite a simple method...there's room for improvement
 
     part_id=$(echo $root_dev_path | egrep -o 'p[0-9]+$')
@@ -62,7 +82,7 @@ if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
     fi
 fi
 
-# 3. generate a new machine-id
+# 4. generate a new machine-id
 if [ ! -e /etc/machine-id ]; then
     systemd-machine-id-setup
     echo "KERNEL_INSTALL_MACHINE_ID=$(cat /etc/machine-id)" > /etc/machine-info
@@ -81,24 +101,5 @@ if [ ! -e /etc/machine-id ]; then
     done
 fi
 
-# 4. update-grub
+# 5. update-grub
 update-grub
-
-# 5. extract firmware
-# this should be identical to the %post script in asahi-fwextract
-
-source /usr/share/asahi-scripts/functions.sh
-esp="/run/.system-efi"
-mount_sys_esp "$esp"
-
-if [ ! -e "$esp/asahi/all_firmware.tar.gz" ]; then
-  printf '==> No /asahi/all_firmware.tar.gz in the ESP, skipping firmware extraction'
-  return 0
-fi
-
-printf '==> Upgrading vendor firmware package...\n'
-python3 -m asahi_firmware.update "$esp/asahi" "$esp/vendorfw/firmware.tar.new" "$esp/vendorfw/manifest.txt.new"
-mv -f "$esp/vendorfw/manifest.txt"{.new,}
-mv -f "$esp/vendorfw/firmware.tar"{.new,}
-printf '    Firmware upgraded\n'
-update-vendor-firmware
