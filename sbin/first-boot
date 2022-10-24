@@ -69,7 +69,8 @@ if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
     root_disk=$(echo $root_dev_path | sed "s/$part_id$//")
 
     echo -e "\ngrowpart $root_disk $part_num"
-    growpart $root_disk $part_num
+    # don't fail if partition doesn't need to be expanded
+    growpart $root_disk $part_num || true
 
     if [ $root_fstype == 'btrfs' ]; then
         echo -e "\nbtrfs filesystem resize max /"
