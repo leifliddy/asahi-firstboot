@@ -1,1 +1,0 @@
-grub2-tools:in:[ -f '/etc/grub.d/30_uefi-firmware' ] && chmod -x /etc/grub.d/30_uefi-firmware
