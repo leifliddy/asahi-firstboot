@@ -8,10 +8,10 @@ root_fstype=$(blkid -s TYPE -o value $root_dev_path)
 boot_fstype=$(blkid -s TYPE -o value $boot_dev_path)
 efi_fstype=$(blkid -s TYPE -o value $efi_dev_path)
 
+internal_install=$(echo $root_dev_path | grep '^/dev/nvme')
 
 # 1. randomize the UUID of the efi and root partitions
-if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
-    if [ $efi_fstype == 'vfat' ]; then
+if [ -n $internal_install ] && [[ $efi_fstype = 'vfat' ]]; then
         echo -e "\nSetting $efi_dev label to EFI-FEDORA"
         dosfslabel $efi_dev_path 'EFI-FEDORA'
 
@@ -28,10 +28,9 @@ if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
             sed -i "s/$efi_uuid_old/$efi_uuid_new/" /etc/fstab
             systemctl daemon-reload
         fi
-    fi
     # only support randomizing the UUID of ext4 root partitions
     # btrfs is not supported as you can't change the UUID of a btrfs partiton while it's mounted
-    if [ $root_fstype == 'ext4' ]; then
+    if [[ $root_fstype == 'ext4' ]]; then
         echo "Randomizing root filesystem UUID..."
         root_uuid_old=$(blkid -s UUID -o value $root_dev_path)
         if [ -n $root_uuid_old ]; then
@@ -39,7 +38,7 @@ if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
             root_uuid_new=$(blkid -s UUID -o value $root_dev_path)
             echo "Root filesystem: $root_uuid_new"
 
-            if [ $root_uuid_old != $root_uuid_new ]; then
+            if [[ $root_uuid_old != $root_uuid_new ]]; then
                 echo "Regenerating /etc/fstab..."
                 sed -i "s/$root_uuid_old/$root_uuid_new/" /etc/fstab
             fi
@@ -48,14 +47,13 @@ if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
 fi
 
 # 2. expand the /boot filesystem
-if [ $(echo $root_dev_path | grep '^/dev/nvme') ]; then
-    if [ $boot_dev_path != $root_dev_path ]; then
-        if [ $boot_fstype == 'ext4' ]; then
+if [ -n $internal_install ]; then
+    if [[ $boot_dev_path != $root_dev_path ]]; then
+        if [[ $boot_fstype == 'ext4' ]]; then
           echo -e "\nresize2fs "
           resize2fs $boot_dev_path
-        fi
 
-        if [ $boot_fstype == 'xfs' ]; then
+        elif [[ $boot_fstype == 'xfs' ]]; then
           echo -e "\nxfs_growfs $boot_dev_path"
           xfs_growfs /boot
         fi
@@ -76,9 +74,8 @@ fi
     if [ $root_fstype == 'btrfs' ]; then
         echo -e "\nbtrfs filesystem resize max /"
         btrfs filesystem resize max /
-    fi
 
-    if [ $root_fstype == 'ext4' ]; then
+    elif [ $root_fstype == 'ext4' ]; then
         echo -e "\nresize2fs $root_dev_path"
         resize2fs $root_dev_path
     fi
@@ -112,8 +109,3 @@ fi
 
 # 7. restorecon
 restorecon -Rv /
-
-# 8. set keyboard brightness on (laptop) keyboards to 10
-if [ $(command -v light) ]; then
-    light -s sysfs/leds/kbd_backlight -S 10 || true
-fi
