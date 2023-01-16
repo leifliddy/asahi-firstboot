@@ -23,7 +23,7 @@ if [ -z $boot_uuid ]; then
 fi
 
 # rsync grub2 modules to /boot/grub2/arm64-efi
-rsync -avr --delete /usr/lib/grub/arm64-efi /boot/grub2/
+rsync -avr --quiet --delete /usr/lib/grub/arm64-efi /boot/grub2/
 
 boot_dev_path=$(blkid -U $boot_uuid)
 boot_fstype=$(blkid -s TYPE -o value $boot_dev_path)
