@@ -2,7 +2,7 @@
 Description=Sets up system on first boot
 DefaultDependencies=no
 Conflicts=shutdown.target
-After=systemd-remount-fs.service boot-efi.mount
+After=systemd-remount-fs.service
 Before=systemd-udev-trigger.service first-boot-complete.target
 Wants=first-boot-complete.target
 ConditionPathIsReadWrite=/etc
