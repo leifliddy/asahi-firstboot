@@ -1,5 +1,8 @@
 #!/usr/bin/bash
 
+mount /boot &> /dev/null || true
+mount /boot/efi &> /dev/null || true
+
 root_dev_path=$(findmnt -nv -o SOURCE /)
 boot_dev_path=$(findmnt -nv -o SOURCE /boot)
 efi_dev_path=$(findmnt -n -o SOURCE /boot/efi)
@@ -52,10 +55,6 @@ if [ -n $internal_install ]; then
         if [[ $boot_fstype == 'ext4' ]]; then
           echo -e "\nresize2fs "
           resize2fs $boot_dev_path
-
-        elif [[ $boot_fstype == 'xfs' ]]; then
-          echo -e "\nxfs_growfs $boot_dev_path"
-          xfs_growfs /boot
         fi
     fi
 fi
@@ -104,8 +103,8 @@ fi
 # 5. extract firmware
 [[ -f /usr/sbin/asahi-fwextract ]] && /usr/sbin/asahi-fwextract
 
-# 6. update-grub
-[[ -d /boot/grub2 ]] && update-grub
-
-# 7. restorecon
+# 6. restorecon
 restorecon -Rv /
+
+# 7. set SELINUX to enforcing
+#sed -i 's/SELINUX=permissive/SELINUX=enforcing/' /etc/sysconfig/selinux
