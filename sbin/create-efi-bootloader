@@ -31,7 +31,7 @@ boot_fstype=$(blkid -s TYPE -o value $boot_dev_path)
 # we need to include a preceding /boot
 # 1. if there is no separate /boot partition
 # 2. if the boot partition is on a btrfs subvolume
-if [ $boot_uuid == $root_uuid ] || [ $boot_fstype == 'btrfs' ]; then
+if [[ $boot_uuid == $root_uuid ]] || [[ $boot_fstype == 'btrfs' ]]; then
     PREFIX_GRUB_DIR=$GRUB_DIR
 else
     PREFIX_GRUB_DIR='/grub2'
