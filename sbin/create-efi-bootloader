@@ -2,7 +2,7 @@
 
 set -e
 
-# creates a bootable grub image names it /boot/efi/EFI/BOOT/BOOTAA64.EFI
+# creates a bootable grub image and copies it to /boot/efi/EFI/BOOT/BOOTAA64.EFI
 # the BOOTAA64.EFI bootloader provided by the shim-aa64 package takes too long to boot on apple silicon systems
 # the BOOTAA64.EFI produced by this script is much faster
 # simply install the shim-aa64 rpm if you would rather use the stock Fedora BOOTAA64.EFI booloader
