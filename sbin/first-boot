@@ -57,7 +57,6 @@ if [ -n $internal_install ]; then
           resize2fs $boot_dev_path
         fi
     fi
-fi
 
 # 3. expand the root partition and filesystem
 # this is quite a simple method...there's room for improvement
@@ -78,6 +77,7 @@ fi
         echo -e "\nresize2fs $root_dev_path"
         resize2fs $root_dev_path
     fi
+fi
 
 # 4. generate a new machine-id
 if [ ! -e /etc/machine-id ]; then
