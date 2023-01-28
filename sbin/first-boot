@@ -103,8 +103,8 @@ fi
 # 5. extract firmware
 [[ -f /usr/sbin/asahi-fwextract ]] && /usr/sbin/asahi-fwextract
 
-# 6. restorecon
-restorecon -Rv /
+# 6. set selinux to enforcing'
+sed -i 's/^SELINUX=.*$/SELINUX=enforcing/' /etc/selinux/config
 
-# 7. set SELINUX to enforcing
-#sed -i 's/SELINUX=permissive/SELINUX=enforcing/' /etc/sysconfig/selinux
+# 7. relabel filesystem
+/usr/libexec/selinux/selinux-autorelabel
