@@ -55,6 +55,10 @@ if [ -n $internal_install ]; then
         if [[ $boot_fstype == 'ext4' ]]; then
           echo -e "\nresize2fs "
           resize2fs $boot_dev_path
+          
+        elif [[ $boot_fstype == 'xfs' ]]; then
+          echo -e "\nxfs_growfs $boot_dev_path"
+          xfs_growfs /boot
         fi
     fi
 
