@@ -88,7 +88,8 @@ if [ -n $internal_install ]; then
 fi
 
 # 4. generate a new machine-id
-if [ ! -e /etc/machine-id ]; then
+modified=$(find /etc/ -type f -mmin -1 | grep '^/etc/machine-id$')
+if [[ ! -e /etc/machine-id || -n $modified ]]; then
     systemd-machine-id-setup
     echo "KERNEL_INSTALL_MACHINE_ID=$(cat /etc/machine-id)" > /etc/machine-info
 
