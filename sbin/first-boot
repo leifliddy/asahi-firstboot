@@ -1,8 +1,11 @@
 #!/usr/bin/bash
 
-mount /boot &> /dev/null || true
-mount /boot/efi &> /dev/null || true
+mount_boot() {
+    mount /boot &> /dev/null || true
+    mount /boot/efi &> /dev/null || true
+}
 
+mount_boot
 root_dev_path=$(findmnt -nv -o SOURCE /)
 boot_dev_path=$(findmnt -nv -o SOURCE /boot)
 efi_dev_path=$(findmnt -n -o SOURCE /boot/efi)
@@ -29,7 +32,6 @@ if [ -n $internal_install ] && [[ $efi_fstype = 'vfat' ]]; then
         if [ -n $efi_uuid_new ]; then
             echo "Regenerating /etc/fstab..."
             sed -i "s/$efi_uuid_old/$efi_uuid_new/" /etc/fstab
-            systemctl daemon-reload
         fi
     # only support randomizing the UUID of ext4 root partitions
     # btrfs is not supported as you can't change the UUID of a btrfs partiton while it's mounted
@@ -88,14 +90,13 @@ if [ -n $internal_install ]; then
 fi
 
 # 4. generate a new machine-id
-modified=$(find /etc/ -type f -mmin -1 | grep '^/etc/machine-id$')
-if [[ ! -e /etc/machine-id || -n $modified ]]; then
+if [ ! -e /etc/machine-id ]; then
     systemd-machine-id-setup
     echo "KERNEL_INSTALL_MACHINE_ID=$(cat /etc/machine-id)" > /etc/machine-info
 
     # create new BLS entries
     # this is needed as the /etc/machine-id value has been changed
-
+    mount_boot
     rm -f /boot/loader/entries/*.conf
 
     installed_kernels=$(rpm -q kernel | sed 's/kernel-//')
@@ -113,7 +114,95 @@ fi
 [[ -f /usr/sbin/asahi-fwextract ]] && /usr/sbin/asahi-fwextract
 
 # 6. set selinux to enforcing'
-sed -i 's/^SELINUX=.*$/SELINUX=enforcing/' /etc/selinux/config
+sed -i 's/^SELINUX=.*$/SELINUX=en#!/usr/bin/bash
+2
+​
+3
+mount /boot &> /dev/null || true
+4
+mount /boot/efi &> /dev/null || true
+5
+​
+6
+root_dev_path=$(findmnt -nv -o SOURCE /)
+7
+boot_dev_path=$(findmnt -nv -o SOURCE /boot)
+8
+efi_dev_path=$(findmnt -n -o SOURCE /boot/efi)
+9
+​
+10
+root_fstype=$(blkid -s TYPE -o value $root_dev_path)
+11
+boot_fstype=$(blkid -s TYPE -o value $boot_dev_path)
+12
+efi_fstype=$(blkid -s TYPE -o value $efi_dev_path)
+13
+​
+14
+internal_install=$(echo $root_dev_path | grep '^/dev/nvme')
+15
+​
+16
+# 1. randomize the UUID of the efi and root partitions
+17
+if [ -n $internal_install ] && [[ $efi_fstype = 'vfat' ]]; then
+18
+        echo -e "\nSetting $efi_dev label to EFI-FEDORA"
+19
+        dosfslabel $efi_dev_path 'EFI-FEDORA'
+20
+​
+21
+        echo -e '\nRandomizing EFI system partition UUID...'
+22
+        efi_uuid_old=$(blkid -s UUID -o value $efi_dev_path)
+23
+        echo -e "EFI partition uuid current: $efi_uuid_old\n"
+24
+        fatlabel --volume-id --reset $efi_dev_path
+25
+        sleep 2
+26
+        efi_uuid_new=$(blkid -s UUID -o value $efi_dev_path)
+27
+        echo -e "EFI partition uuid new: $efi_uuid_new\n"
+28
+​
+29
+        if [ -n $efi_uuid_new ]; then
+30
+            echo "Regenerating /etc/fstab..."
+31
+            sed -i "s/$efi_uuid_old/$efi_uuid_new/" /etc/fstab
+32
+            systemctl daemon-reload
+33
+        fi
+34
+    # only support randomizing the UUID of ext4 root partitions
+35
+    # btrfs is not supported as you can't change the UUID of a btrfs partiton while it's mounted
+36
+    if [[ $root_fstype == 'ext4' ]]; then
+37
+        echo "Randomizing root filesystem UUID..."
+38
+        root_uuid_old=$(blkid -s UUID -o value $root_dev_path)
+39
+        if [ -n $root_uuid_old ]; then
+40
+            tune2fs -U random $root_dev_path
+41
+            root_uuid_new=$(blkid -s UUID -o value $root_dev_path)
+42
+            echo "Root filesystem: $root_uuid_new"
+43
+​
+44
+            if [[ $root_uuid_old != $root_uuid_new ]]; then
+45
+                echo "Regenerating /etc/fstab..."forcing/' /etc/selinux/config
 
 # 7. relabel filesystem
 /usr/libexec/selinux/selinux-autorelabel
