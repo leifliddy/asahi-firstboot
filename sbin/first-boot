@@ -100,8 +100,5 @@ fi
 # 6. set selinux to enforcing'
 sed -i 's/^SELINUX=.*$/SELINUX=enforcing/' /etc/selinux/config
 
-# 7. set hostname
-hostnamectl set-hostname fedora
-
-# 8. relabel filesystem
+# 7. relabel filesystem
 /usr/libexec/selinux/selinux-autorelabel
