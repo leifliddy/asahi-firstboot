@@ -95,7 +95,7 @@ else
 fi
 
 # 5. extract firmware
-[[ -f /usr/sbin/asahi-fwupdate ]] && /usr/sbin/asahi-fwupdate
+[[ -f /usr/sbin/asahi-fwextract ]] && /usr/sbin/asahi-fwextract
 
 # 6. set selinux to enforcing'
 sed -i 's/^SELINUX=.*$/SELINUX=enforcing/' /etc/selinux/config
