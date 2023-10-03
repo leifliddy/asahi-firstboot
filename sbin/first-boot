@@ -83,7 +83,7 @@ if [ ! -e /etc/machine-id ]; then
     mount_boot
     rm -f /boot/loader/entries/*.conf
 
-    installed_kernels=$(rpm -q kernel | sed 's/kernel-//')
+    installed_kernels=$(rpm -q kernel-16k | sed 's/kernel-16k-//' | sed 's/$/+16k/')
 
     # kernel-install will call dracut, so no need to run that separately
     for kernel_version in $installed_kernels
@@ -94,5 +94,8 @@ else
     dracut -f
 fi
 
-# 5. relabel filesystem
+# 5. set selinux to enforcing'
+sed -i 's/^SELINUX=.*$/SELINUX=enforcing/' /etc/selinux/config
+
+# 6. relabel filesystem
 /usr/libexec/selinux/selinux-autorelabel
