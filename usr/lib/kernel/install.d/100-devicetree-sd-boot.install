@@ -21,7 +21,7 @@ then
 	exit 0
 fi
 
-# Setup a /boot/dtb -> /boot/dtb-$newest_kernel_version symlink so that
+# Setup a /boot/dtb -> /usr/lib/modules/$newest_kernel_version/dtb symlink so that
 # u-boot can find the correct dtb to load.
 #
 # If invoked to 'add' a new kernel, find the newest based on `sort`ing
