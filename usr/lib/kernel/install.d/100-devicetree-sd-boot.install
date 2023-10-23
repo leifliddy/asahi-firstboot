@@ -2,6 +2,10 @@
 
 # set -x
 
+# ensure that systemd-boot is installed
+[[ $(command -v bootctl) ]] || exit 0
+[[ $(bootctl is-installed) != 'yes' ]] && exit 0
+
 if [[ "$(uname -m)" == arm* || "$(uname -m)" == aarch64 ]]
 then
 COMMAND="$1"
@@ -21,7 +25,7 @@ then
 	exit 0
 fi
 
-# Setup a /boot/dtb -> /usr/lib/modules/$newest_kernel_version/dtb symlink so that
+# Setup a /boot/dtb -> /boot/dtb-$newest_kernel_version symlink so that
 # u-boot can find the correct dtb to load.
 #
 # If invoked to 'add' a new kernel, find the newest based on `sort`ing
